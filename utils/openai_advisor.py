@@ -1,4 +1,3 @@
-import openai
 # utils/openai_advisor.py
 
 import openai

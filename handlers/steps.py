@@ -30,3 +30,4 @@ async def steps(message: types.Message):
     except (IndexError, ValueError):
         text = "❗ Введи количество шагов после команды: /steps 8500"
     await message.answer(text)
+
