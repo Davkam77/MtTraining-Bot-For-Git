@@ -4,14 +4,15 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from datetime import datetime, timedelta
 from aiogram import Bot
 
-scheduler = AsyncIOScheduler()
+scheduler = AsyncIOScheduler()  # создаём, но НЕ стартуем!
 
 
 def start_scheduler():
     if not scheduler.running:
-        scheduler.start()
+        scheduler.start()  # запускать только когда loop уже есть!
 
 
+# Можно хранить расписания в памяти, но для продакшна — использовать БД.
 user_meal_jobs = {}
 
 
@@ -22,6 +23,7 @@ async def schedule_meal_reminders(chat_id, wake_time):
     """
     remove_meal_jobs(chat_id)
     jobs = []
+
     base = datetime.combine(datetime.today(), wake_time)
     meal_plan = [
         ("🥣 Время завтракать!", base + timedelta(hours=2)),
@@ -30,6 +32,8 @@ async def schedule_meal_reminders(chat_id, wake_time):
         ("💪 Время размяться или тренировка.", base + timedelta(hours=9)),
         ("🍽️ Лёгкий ужин (не позже 18:30)!", base + timedelta(hours=11)),
     ]
+
+    # Ограничение ужина не позже 18:30
     for title, dt in meal_plan:
         if dt.time() > datetime.strptime("18:30", "%H:%M").time():
             continue
@@ -38,6 +42,7 @@ async def schedule_meal_reminders(chat_id, wake_time):
                                 run_date=dt,
                                 args=[chat_id, title])
         jobs.append(job)
+
     user_meal_jobs[chat_id] = jobs
 
 

@@ -1,27 +1,22 @@
-from aiogram import Router, types
+# handlers/motivation.py
+
+from aiogram import Router, types, F
 from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from utils.openai_advisor import ask_openai
-from utils.notifications import schedule_daily_motivation, add_user_for_motivation
 
 router = Router()
+scheduler = AsyncIOScheduler()
 
 
 class MotivationStates(StatesGroup):
     awaiting_time = State()
 
 
-@router.message(Command("motivation"))
-async def send_motivation(message: types.Message):
-    prompt = (
-        "Сгенерируй короткое мотивационное сообщение для похудения, дисциплины, силы воли. "
-        "Текст на русском, максимум 2 предложения, только по делу.")
-    try:
-        text = await ask_openai(prompt)
-    except Exception:
-        text = "Сегодня — отличный день, чтобы стать лучше! 💪"
-    await message.answer(f"🔥 Мотивация дня:\n\n{text}")
+# Сохраним расписание по chat_id
+motivation_times = {}
 
 
 @router.message(Command("motivation_time"))
@@ -43,6 +38,34 @@ async def process_motivation_time(message: types.Message, state: FSMContext):
         return
 
     chat_id = message.chat.id
-    add_user_for_motivation(chat_id, hour, minute)
+    motivation_times[chat_id] = (hour, minute)
+
+    # Удаляем старую задачу, если была
+    job_id = f"motivation_{chat_id}"
+    if scheduler.get_job(job_id):
+        scheduler.remove_job(job_id)
+
+    # Планируем мотивацию каждый день по выбранному времени
+    scheduler.add_job(send_daily_motivation,
+                      "cron",
+                      hour=hour,
+                      minute=minute,
+                      args=[chat_id],
+                      id=job_id,
+                      replace_existing=True)
     await message.answer(f"🧠 Мотивация будет приходить каждый день в {text}!")
     await state.clear()
+
+
+async def send_daily_motivation(chat_id):
+    prompt = (
+        "Сгенерируй короткое мотивационное сообщение для похудения, дисциплины, силы воли. "
+        "Текст на русском, максимум 2 предложения, только по делу.")
+    try:
+        text = ask_openai(prompt)
+    except Exception:
+        text = "Сегодня — отличный день, чтобы стать лучше! 💪"
+    # Здесь используем Bot.get_current() чтобы отправить вне хендлера
+    from aiogram import Bot
+    bot = Bot.get_current()
+    await bot.send_message(chat_id, f"🔥 Мотивация дня:\n\n{text}")
