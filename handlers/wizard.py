@@ -84,6 +84,7 @@ async def wizard_activity(call: types.CallbackQuery, state: FSMContext):
     await state.update_data(activity=activity)
     data = await state.get_data()
 
+
     # Сохраняем профиль в БД
     save_user_profile(
         user_id=call.from_user.id,
@@ -94,6 +95,13 @@ async def wizard_activity(call: types.CallbackQuery, state: FSMContext):
         gender=data["gender"],
         activity=activity
     )
+
+    # Добавляем в weight_history + weight_logs
+    add_weight_entry(
+        user_id=call.from_user.id,
+        weight=data["weight"]
+    )
+
 
     kcal = calc_calories(
         weight=data["weight"],

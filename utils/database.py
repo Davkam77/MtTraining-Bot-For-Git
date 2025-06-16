@@ -32,7 +32,25 @@ def init_db():
         )
         """)
 
+        # Таблица шагов / веса с timestamp
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS weight_logs (
+            user_id INTEGER,
+            weight REAL,
+            timestamp TEXT
+        )
+        """)
+
         conn.commit()
+        # Таблица дневного меню
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS daily_mealplan (
+            user_id INTEGER,
+            date TEXT,
+            meals TEXT
+        )
+        """)
+
 
 def save_user_profile(user_id, weight, goal, height, age, gender, activity):
     with get_connection() as conn:
@@ -54,11 +72,22 @@ def add_weight_entry(user_id, weight):
     with get_connection() as conn:
         cur = conn.cursor()
         today = datetime.now().strftime("%Y-%m-%d")
+        timestamp = datetime.now().isoformat()
+
+        # weight_history — для графика
         cur.execute("""
             INSERT INTO weight_history (user_id, date, weight)
             VALUES (?, ?, ?)
         """, (user_id, today, weight))
+
+        # weight_logs — для dashboard
+        cur.execute("""
+            INSERT INTO weight_logs (user_id, weight, timestamp)
+            VALUES (?, ?, ?)
+        """, (user_id, weight, timestamp))
+
         conn.commit()
+
 
 def get_user_profile(user_id):
     with get_connection() as conn:
@@ -130,3 +159,30 @@ def get_steps_by_user(user_id: int) -> int:
         """, (user_id,))
         result = cur.fetchone()[0]
         return result or 0
+
+def save_mealplan(user_id, date, meals_text):
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS daily_mealplan (
+                user_id INTEGER,
+                date TEXT,
+                meals TEXT
+            )
+        """)
+        cur.execute("""
+            INSERT INTO daily_mealplan (user_id, date, meals)
+            VALUES (?, ?, ?)
+        """, (user_id, date, meals_text))
+        conn.commit()
+
+def get_today_mealplan(user_id):
+    with get_connection() as conn:
+        cur = conn.cursor()
+        today = datetime.now().strftime("%Y-%m-%d")
+        cur.execute("""
+            SELECT meals FROM daily_mealplan
+            WHERE user_id = ? AND date = ?
+        """, (user_id, today))
+        row = cur.fetchone()
+        return row[0] if row else None

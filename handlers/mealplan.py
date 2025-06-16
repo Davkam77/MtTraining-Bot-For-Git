@@ -1,33 +1,38 @@
 from aiogram import Router, types
 from aiogram.filters import Command
-from utils.database import get_user_dashboard
-from utils.meal_generator import generate_mealplan
+from utils.database import get_user_profile, get_today_mealplan, save_mealplan
 from utils.calorie_calc import calc_calories
+from datetime import datetime
 
 router = Router()
 
 @router.message(Command("mealplan"))
-async def mealplan(message: types.Message):
+async def mealplan_handler(message: types.Message):
     user_id = message.from_user.id
-    stats = get_user_dashboard(user_id)
+    profile = get_user_profile(user_id)
 
-    if not stats["last_weight"]:
-        await message.answer("⚠️ Добавь хотя бы один вес через /progress, чтобы мы могли рассчитать рацион.")
+    if not profile:
+        await message.answer("❗ Сначала заполни профиль через /wizard.")
         return
 
-    # Примитивные значения (можно улучшить, если есть сохранённые параметры)
-    weight = stats["last_weight"]
-    height = 170
-    age = 27
-    gender = 'm'
-    activity = 1.38
-    goal = weight - 3  # худеем
+    # Проверим, есть ли сохранённое меню
+    today_plan = get_today_mealplan(user_id)
+    if today_plan:
+        await message.answer(f"🍽️ Твоё меню на сегодня уже готово:\n\n{today_plan}")
+        return
 
-    kcal = calc_calories(weight, height, age, gender, activity, goal)
-    meals = generate_mealplan(kcal)
+    kcal = calc_calories(**profile)
+    breakfast = round(kcal * 0.3)
+    lunch = round(kcal * 0.4)
+    dinner = round(kcal * 0.3)
 
-    text = f"🍽️ <b>Твой рацион на сегодня (~{int(kcal)} ккал):</b>\n\n"
-    for meal, desc in meals.items():
-        text += f"▪️ <b>{meal}</b>: {desc}\n"
-    
+    text = (
+        f"<b>🍽️ Меню на сегодня:</b>\n"
+        f"🍳 Завтрак: {breakfast} ккал\n"
+        f"🥗 Обед: {lunch} ккал\n"
+        f"🍲 Ужин: {dinner} ккал\n\n"
+        f"💡 Это базовое меню на день. Можно адаптировать под себя."
+    )
+
+    save_mealplan(user_id, datetime.now().strftime("%Y-%m-%d"), text)
     await message.answer(text, parse_mode="HTML")
