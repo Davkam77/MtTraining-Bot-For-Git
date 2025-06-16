@@ -1,14 +1,21 @@
 from aiogram import Router, types
 from aiogram.filters import Command
+from utils.database import get_user_dashboard
+from utils.workout_planner import generate_workout
 
 router = Router()
 
 @router.message(Command("workout"))
-async def workout_handler(message: types.Message):
-    await message.answer(
-        "🏋️‍♂️ Пример тренировки:\n"
-        "— Приседания 3x15\n"
-        "— Отжимания 3x12\n"
-        "— Планка 3x30 сек\n"
-        "— Кардио: 30 мин ходьбы"
-    )
+async def workout(message: types.Message):
+    user_id = message.from_user.id
+    stats = get_user_dashboard(user_id)
+
+    if not stats["last_weight"]:
+        await message.answer("⚠️ Добавь вес через /progress, чтобы получить тренировку.")
+        return
+
+    # Пока нет активности в базе — ставим среднюю
+    activity = 1.38  
+    workout_plan = generate_workout(activity)
+
+    await message.answer(f"🏋️ <b>Твоя тренировка на сегодня:</b>\n\n{workout_plan}", parse_mode="HTML")

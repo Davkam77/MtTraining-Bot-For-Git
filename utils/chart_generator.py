@@ -2,33 +2,36 @@ import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime
 import io
-import os
-import json
-
+import sqlite3
+from utils.database import get_connection
 
 def generate_chart_human(user_id):
-    # Пример: загрузка данных из файла data/weight_data.json
-    data_file = f"data/weight_{user_id}.json"
-    if not os.path.exists(data_file):
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT date, weight FROM weight_history
+            WHERE user_id = ?
+            ORDER BY date ASC
+        """, (user_id,))
+        rows = cur.fetchall()
+
+    if not rows or len(rows) < 2:
         return None
 
-    with open(data_file, "r") as f:
-        weight_data = json.load(f)  # [("2025-06-10", 98), ...]
+    # Преобразуем строки в datetime
+    dates = [datetime.strptime(row[0], "%Y-%m-%d") for row in rows]
+    weights = [row[1] for row in rows]
 
-    if not weight_data or len(weight_data) < 2:
-        return None
-
-    dates = [datetime.strptime(d, "%Y-%m-%d") for d, _ in weight_data]
-    weights = [w for _, w in weight_data]
-
+    # Расчёт тренда
     diff = weights[-1] - weights[0]
     days = (dates[-1] - dates[0]).days
     sign = "минус" if diff < 0 else "плюс"
-    trend_text = f"📆 {days} дней: {sign} {abs(diff):.1f} кг"
+    trend_text = f"📆 За {days} дн.: {sign} {abs(diff):.1f} кг"
 
+    # Построение графика
     fig, ax = plt.subplots(figsize=(7, 4))
     ax.plot(dates, weights, marker="o", linewidth=2)
-    ax.set_title("Динамика веса")
+    ax.set_title("📉 Динамика веса")
     ax.set_xlabel("Дата")
     ax.set_ylabel("Вес (кг)")
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%d.%m'))
