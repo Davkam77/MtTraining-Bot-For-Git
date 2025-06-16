@@ -50,7 +50,7 @@ def register_all_handlers():
 async def main():
     init_db()
     register_all_handlers()
-    start_scheduler()
+    start_scheduler(bot)
     print("✅ Бот запущен и слушает обновления...")
     await dp.start_polling(bot)
 

@@ -28,3 +28,7 @@ async def show_dashboard(message: types.Message):
         f"Всего записей: <b>{stats['total_entries']}</b>\n"
         f"Добавить вес — /weight"
     )
+
+@router.message(Command("status"))
+async def alias_status(message: types.Message):
+    await show_dashboard(message)

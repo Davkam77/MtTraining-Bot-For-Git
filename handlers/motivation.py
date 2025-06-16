@@ -36,3 +36,6 @@ async def process_motivation_time(message: types.Message, state: FSMContext):
     add_user_for_motivation(message.chat.id, hour, minute)
     await message.answer(f"✅ Готово! Теперь мотивация будет приходить в {hour:02}:{minute:02}")
     await state.clear()
+
+def get_daily_motivation():
+    return "Сегодня отличный день, чтобы стать сильнее! 💪"

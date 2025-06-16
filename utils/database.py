@@ -10,7 +10,7 @@ def init_db():
     with get_connection() as conn:
         cur = conn.cursor()
 
-        # Таблица профиля
+        # Профиль пользователя
         cur.execute("""
         CREATE TABLE IF NOT EXISTS user_profile (
             user_id INTEGER PRIMARY KEY,
@@ -23,7 +23,7 @@ def init_db():
         )
         """)
 
-        # Таблица истории веса
+        # История веса
         cur.execute("""
         CREATE TABLE IF NOT EXISTS weight_history (
             user_id INTEGER,
@@ -32,7 +32,7 @@ def init_db():
         )
         """)
 
-        # Таблица шагов / веса с timestamp
+        # Логи веса
         cur.execute("""
         CREATE TABLE IF NOT EXISTS weight_logs (
             user_id INTEGER,
@@ -41,8 +41,7 @@ def init_db():
         )
         """)
 
-        conn.commit()
-        # Таблица дневного меню
+        # План питания
         cur.execute("""
         CREATE TABLE IF NOT EXISTS daily_mealplan (
             user_id INTEGER,
@@ -51,7 +50,39 @@ def init_db():
         )
         """)
 
+        # Шаги
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS steps (
+            user_id INTEGER,
+            date TEXT,
+            steps INTEGER,
+            PRIMARY KEY (user_id, date)
+        )
+        """)
 
+        # Настройки тренировок
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS workout_settings (
+            user_id INTEGER PRIMARY KEY,
+            duration_minutes INTEGER,
+            months INTEGER,
+            start_date TEXT
+        )
+        """)
+
+        # Тренировки по дням
+        cur.execute("""
+        CREATE TABLE IF NOT EXISTS daily_workout (
+            user_id INTEGER,
+            date TEXT,
+            workout TEXT,
+            PRIMARY KEY (user_id, date)
+        )
+        """)
+
+        conn.commit()
+
+# ⬇️ Работа с профилем
 def save_user_profile(user_id, weight, goal, height, age, gender, activity):
     with get_connection() as conn:
         cur = conn.cursor()
@@ -67,27 +98,6 @@ def save_user_profile(user_id, weight, goal, height, age, gender, activity):
                 activity=excluded.activity
         """, (user_id, weight, goal, height, age, gender, activity))
         conn.commit()
-
-def add_weight_entry(user_id, weight):
-    with get_connection() as conn:
-        cur = conn.cursor()
-        today = datetime.now().strftime("%Y-%m-%d")
-        timestamp = datetime.now().isoformat()
-
-        # weight_history — для графика
-        cur.execute("""
-            INSERT INTO weight_history (user_id, date, weight)
-            VALUES (?, ?, ?)
-        """, (user_id, today, weight))
-
-        # weight_logs — для dashboard
-        cur.execute("""
-            INSERT INTO weight_logs (user_id, weight, timestamp)
-            VALUES (?, ?, ?)
-        """, (user_id, weight, timestamp))
-
-        conn.commit()
-
 
 def get_user_profile(user_id):
     with get_connection() as conn:
@@ -108,8 +118,32 @@ def get_user_profile(user_id):
             "gender": row[4],
             "activity": row[5]
         }
-    else:
-        return None
+    return None
+
+def get_all_users():
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT user_id FROM user_profile")
+        return [row[0] for row in cur.fetchall()]
+
+# ⬇️ Вес
+def add_weight_entry(user_id, weight):
+    with get_connection() as conn:
+        cur = conn.cursor()
+        today = datetime.now().strftime("%Y-%m-%d")
+        timestamp = datetime.now().isoformat()
+
+        cur.execute("""
+            INSERT INTO weight_history (user_id, date, weight)
+            VALUES (?, ?, ?)
+        """, (user_id, today, weight))
+
+        cur.execute("""
+            INSERT INTO weight_logs (user_id, weight, timestamp)
+            VALUES (?, ?, ?)
+        """, (user_id, weight, timestamp))
+
+        conn.commit()
 
 def get_user_dashboard(user_id):
     with get_connection() as conn:
@@ -131,17 +165,10 @@ def get_user_dashboard(user_id):
         "first_weight": first_weight[0] if first_weight else None
     }
 
+# ⬇️ Шаги
 def update_steps(user_id: int, steps: int):
     with get_connection() as conn:
         cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS steps (
-                user_id INTEGER,
-                date TEXT,
-                steps INTEGER,
-                PRIMARY KEY (user_id, date)
-            )
-        """)
         today = datetime.now().strftime("%Y-%m-%d")
         cur.execute("""
             INSERT INTO steps (user_id, date, steps)
@@ -154,22 +181,14 @@ def update_steps(user_id: int, steps: int):
 def get_steps_by_user(user_id: int) -> int:
     with get_connection() as conn:
         cur = conn.cursor()
-        cur.execute("""
-            SELECT SUM(steps) FROM steps WHERE user_id = ?
-        """, (user_id,))
+        cur.execute("SELECT SUM(steps) FROM steps WHERE user_id = ?", (user_id,))
         result = cur.fetchone()[0]
         return result or 0
 
+# ⬇️ План питания
 def save_mealplan(user_id, date, meals_text):
     with get_connection() as conn:
         cur = conn.cursor()
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS daily_mealplan (
-                user_id INTEGER,
-                date TEXT,
-                meals TEXT
-            )
-        """)
         cur.execute("""
             INSERT INTO daily_mealplan (user_id, date, meals)
             VALUES (?, ?, ?)
@@ -182,6 +201,61 @@ def get_today_mealplan(user_id):
         today = datetime.now().strftime("%Y-%m-%d")
         cur.execute("""
             SELECT meals FROM daily_mealplan
+            WHERE user_id = ? AND date = ?
+        """, (user_id, today))
+        row = cur.fetchone()
+        return row[0] if row else None
+
+# ⬇️ Тренировки
+def save_workout_settings(user_id, duration_minutes, months):
+    with get_connection() as conn:
+        cur = conn.cursor()
+        start_date = datetime.now().strftime("%Y-%m-%d")
+        cur.execute("""
+            INSERT INTO workout_settings (user_id, duration_minutes, months, start_date)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                duration_minutes = excluded.duration_minutes,
+                months = excluded.months,
+                start_date = excluded.start_date
+        """, (user_id, duration_minutes, months, start_date))
+        conn.commit()
+
+def get_workout_settings(user_id):
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT duration_minutes, months, start_date
+            FROM workout_settings
+            WHERE user_id = ?
+        """, (user_id,))
+        row = cur.fetchone()
+
+    if row:
+        return {
+            "duration_minutes": row[0],
+            "months": row[1],
+            "start_date": row[2]
+        }
+    return None
+
+def save_daily_workout(user_id, date, workout_text):
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO daily_workout (user_id, date, workout)
+            VALUES (?, ?, ?)
+            ON CONFLICT(user_id, date) DO UPDATE SET
+                workout = excluded.workout
+        """, (user_id, date, workout_text))
+        conn.commit()
+
+def get_today_workout(user_id):
+    with get_connection() as conn:
+        cur = conn.cursor()
+        today = datetime.now().strftime("%Y-%m-%d")
+        cur.execute("""
+            SELECT workout FROM daily_workout
             WHERE user_id = ? AND date = ?
         """, (user_id, today))
         row = cur.fetchone()
