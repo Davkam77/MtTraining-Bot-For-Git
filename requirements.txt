@@ -1,4 +1,7 @@
 aiogram
-python-dotenv
-matplotlib
 openai
+python-dotenv
+apscheduler
+aiohttp
+matplotlib
+binpan

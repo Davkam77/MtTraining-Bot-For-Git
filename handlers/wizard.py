@@ -1,10 +1,20 @@
 from aiogram import Router, types, F
+from aiogram.filters import Command
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from utils.calorie_calc import calc_calories
-
+from datetime import datetime
+import os
+import json
 router = Router()
+
+
+@router.message(Command("wizard"))
+async def wizard_start(message: types.Message, state: FSMContext):
+    await message.answer("1️⃣ Введи текущий вес (в кг):")
+    await state.set_state(WizardStates.await_weight)
+
 
 class WizardStates(StatesGroup):
     await_weight = State()
@@ -24,6 +34,21 @@ async def wizard_weight(message: types.Message, state: FSMContext):
         await message.answer("2️⃣ Введи желаемый вес (кг):")
     except:
         await message.answer("Введите вес числом, например: 86.4")
+        today = datetime.now().strftime("%Y-%m-%d")
+    user_id = message.from_user.id
+    data_file = f"data/weight_{user_id}.json"
+
+    if os.path.exists(data_file):
+        with open(data_file, "r") as f:
+            weight_data = json.load(f)
+    else:
+        weight_data = []
+
+    weight_data.append((today, weight))
+
+    with open(data_file, "w") as f:
+        json.dump(weight_data, f, ensure_ascii=False)
+
 
 @router.message(WizardStates.await_goal)
 async def wizard_goal(message: types.Message, state: FSMContext):
