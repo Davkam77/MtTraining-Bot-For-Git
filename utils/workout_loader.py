@@ -21,3 +21,14 @@ def load_workout(user_id: int):
 
     except Exception as e:
         return f"❗ Ошибка загрузки: {str(e)}"
+
+def generate_workout():
+    workout_path = os.path.join("data", "workout.json")
+    try:
+        with open(workout_path, "r", encoding="utf-8") as f:
+            workouts = json.load(f)
+            if not workouts:
+                return "⚠️ Нет доступных тренировок."
+            return random.choice(workouts)
+    except Exception as e:
+        return f"❌ Ошибка загрузки тренировок: {e}"
