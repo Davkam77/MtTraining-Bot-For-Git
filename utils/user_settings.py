@@ -15,11 +15,10 @@ def save_settings(data):
     with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
 
-def set_user_plan(user_id: int, plan: str):
+def get_user_plan(user_id: int) -> tuple[str, int]:
     settings = load_settings()
-    settings[str(user_id)] = plan
-    save_settings(settings)
-
-def get_user_plan(user_id: int) -> str:
-    settings = load_settings()
-    return settings.get(str(user_id), "1_month")  # default
+    plan_string = settings.get(str(user_id), "1_month|30")  # по умолчанию
+    if "|" in plan_string:
+        plan, duration = plan_string.split("|")
+        return plan, int(duration)
+    return plan_string, 30
