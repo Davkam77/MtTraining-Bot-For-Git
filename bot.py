@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 from handlers import (
  help, mealplan,  start, steps, wake,
-    weight, workout, setworkout, motivation
+    weight, workout, setworkout, motivation_router
 )
 from utils.database import init_db
 from utils.scheduler import start_scheduler
@@ -36,8 +36,10 @@ def register_all_handlers():
         wake.router,
         steps.router,
         weight.router,
-        setworkout.router
+        setworkout.router,
+        motivation_router
     )
+
 
 async def main():
     init_db()
