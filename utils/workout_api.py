@@ -1,47 +1,41 @@
 # utils/workout_api.py
+import aiohttp
 import os
-import httpx
 from dotenv import load_dotenv
-from deep_translator import GoogleTranslator
-import asyncio
 
 load_dotenv()
 
-API_KEY = os.getenv("GYM_API_KEY")
-API_HOST = os.getenv("GYM_API_HOST")
-
+API_KEY = os.getenv("NINJAS_API_KEY")
 HEADERS = {
-    "X-RapidAPI-Key": API_KEY,
-    "X-RapidAPI-Host": API_HOST
+    "X-Api-Key": API_KEY
 }
+BASE_URL = "https://api.api-ninjas.com/v1/exercises"
 
-BASE_URL = f"https://{API_HOST}/exercise"
-
-async def translate_async(text):
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, lambda: GoogleTranslator(source='en', target='ru').translate(text))
-
-async def get_random_exercises(count=5):
+async def get_ninjas_workout():
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            response = await client.get(BASE_URL, headers=HEADERS)
-            response.raise_for_status()
-            all_exercises = response.json()
-
-        if not isinstance(all_exercises, list):
-            return "⚠️ Ответ не в ожидаемом формате."
-
-        import random
-        selected = random.sample(all_exercises, k=min(count, len(all_exercises)))
-        result = []
-
-        for ex in selected:
-            name = await translate_async(ex.get("name", "Без названия"))
-            equipment = await translate_async(ex.get("equipment", "собственное тело"))
-            body_part = await translate_async(ex.get("bodyPart", "всё тело"))
-            result.append(f"🔸 <b>{name}</b> ({body_part}, {equipment})")
-
-        return "\n".join(result)
-
+        async with aiohttp.ClientSession() as session:
+            params = {
+                "muscle": "biceps",
+                "type": "strength",
+                "difficulty": "beginner"
+            }
+            async with session.get(BASE_URL, headers=HEADERS, params=params) as resp:
+                if resp.status == 200:
+                    data = await resp.json()
+                    if data:
+                        return format_workout(data)
+                    # fallback без параметров
+                async with session.get(BASE_URL, headers=HEADERS) as fallback:
+                    fallback_data = await fallback.json()
+                    return format_workout(fallback_data[:5])
     except Exception as e:
         return f"❗ Ошибка при получении упражнений: {e}"
+
+def format_workout(data):
+    lines = []
+    for ex in data[:5]:
+        name = ex.get("name", "Без названия")
+        muscle = ex.get("muscle", "мышцы")
+        eq = ex.get("equipment", "собственное тело")
+        lines.append(f"🔹 <b>{name}</b> ({muscle}, {eq})")
+    return "\n".join(lines)
