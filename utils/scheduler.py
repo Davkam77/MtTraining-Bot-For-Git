@@ -2,7 +2,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot
 from datetime import datetime, timedelta
 from handlers.motivation import get_daily_motivation
-from utils.workout_generator import generate_daily_workout
+from utils.workout_api import get_random_exercises  
 from utils.database import get_all_users
 from utils.database import get_today_mealplan 
 
@@ -18,9 +18,9 @@ async def morning_push(bot: Bot):
     users = get_all_users()
     for user_id in users:
         try:
-            motivation = ()
+            motivation = get_daily_motivation()
             meals = get_today_mealplan(user_id)
-            workout = generate_daily_workout(user_id)
+            workout = await get_random_exercises()  # ⚠️ заменено
 
             msg = (
                 f"🌞 Доброе утро!\n\n"
@@ -32,6 +32,7 @@ async def morning_push(bot: Bot):
             await bot.send_message(user_id, msg, parse_mode="Markdown")
         except Exception as e:
             print(f"[!] Ошибка для {user_id}: {e}")
+
 
 async def schedule_meal_reminders(chat_id, wake_time):
     remove_meal_jobs(chat_id)

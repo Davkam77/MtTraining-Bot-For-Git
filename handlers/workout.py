@@ -8,7 +8,7 @@ from utils.database import (
     save_workout_settings,
     get_today_workout
 )
-from utils.workout_generator import generate_daily_workout
+from utils.workout_api import get_random_exercises
 
 router = Router()
 
@@ -51,27 +51,29 @@ async def process_months(message: Message, state: FSMContext):
     except ValueError:
         await message.answer("❗ Введи число от 1 до 12 (в месяцах).")
 
-# 🔹 Команда /workout
 @router.message(Command("workout"))
-async def cmd_workout(message: Message):
+async def cmd_workout(message: types.Message):
     user_id = message.from_user.id
-    today_workout = get_today_workout(user_id)
-
-    if not today_workout:
-        today_workout = generate_daily_workout(user_id)
+    workout_text = get_random_exercises(count=5)
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔁 Хочу другую тренировку", callback_data="regen_workout")]
     ])
 
-    await message.answer(today_workout, reply_markup=keyboard, parse_mode="HTML")
+    await message.answer(
+        f"<b>🏋️‍♂️ Твоя тренировка на сегодня:</b>\n\n{workout_text}",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
 
-# 🔁 Кнопка "Хочу другую тренировку"
 @router.callback_query(F.data == "regen_workout")
 async def regenerate_workout(callback: types.CallbackQuery):
-    user_id = callback.from_user.id
-    new_workout = generate_daily_workout(user_id, overwrite=True)
+    workout_text = get_random_exercises(count=5)
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="🔁 Хочу другую тренировку", callback_data="regen_workout")]
     ])
-    await callback.message.edit_text(new_workout, reply_markup=keyboard, parse_mode="HTML")
+    await callback.message.edit_text(
+        f"<b>🏋️‍♂️ Новая тренировка:</b>\n\n{workout_text}",
+        reply_markup=keyboard,
+        parse_mode="HTML"
+    )
