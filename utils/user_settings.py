@@ -4,9 +4,11 @@ import os
 SETTINGS_FILE = os.path.join("data", "user_settings.json")
 
 def load_settings():
-    if not os.path.exists(SETTINGS_FILE):
-        return {}
-    with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+    path = 'data/user_settings.json'
+    if not os.path.exists(path) or os.path.getsize(path) == 0:
+        return {}  # если файла нет или он пустой — вернуть пустой словарь
+
+    with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
 
 def save_settings(data):

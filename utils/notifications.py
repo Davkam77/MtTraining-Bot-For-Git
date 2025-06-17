@@ -1,36 +1,26 @@
 from aiogram import Bot
-from utils.openai_advisor import ask_openai
+import os
+from dotenv import load_dotenv
+from utils.user_settings import get_user_plan
+from utils.workout_loader import load_workout
+from utils.motivation_loader import get_random_motivation
+from utils.meal_api import get_meal_plan
 
-motivation_users = {}  # chat_id: (hour, minute)
+load_dotenv()
 
-def add_user_for_motivation(chat_id: int, hour: int, minute: int):
-    motivation_users[chat_id] = (hour, minute)
-    schedule_daily_motivation(chat_id, hour, minute)
+TELEGRAM_TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TELEGRAM_BOT_TOKEN")
 
-def schedule_daily_motivation(chat_id: int, hour: int, minute: int):
-    from utils.scheduler import scheduler
 
-    job_id = f"motivation_{chat_id}"
-    if scheduler.get_job(job_id):
-        scheduler.remove_job(job_id)
+bot = Bot(token=TELEGRAM_TELEGRAM_BOT_TOKEN)
 
-    scheduler.add_job(send_daily_motivation,
-                      "cron",
-                      hour=hour,
-                      minute=minute,
-                      args=[chat_id],
-                      id=job_id,
-                      replace_existing=True)
+async def send_daily_push(user_id: int):
+    motivation = get_random_motivation()
+    workout = load_workout(user_id)
+    meal = await get_meal_plan()
 
-async def send_daily_motivation(chat_id: int):
-    prompt = (
-        "Сгенерируй короткую мотивацию для похудения и дисциплины. "
-        "Только 1-2 предложения. На русском."
-    )
-    try:
-        text = await ask_openai(prompt)
-    except:
-        text = "Сегодня — отличный день, чтобы стать лучше! 💪"
+    message = f"<b>🔥 Утренний заряд!</b>\n\n" \
+              f"<b>💬 Мотивация:</b> {motivation}\n\n" \
+              f"<b>🍽 Рацион:</b>\n{meal}\n\n" \
+              f"<b>🏋️ Тренировка:</b>\n{workout}"
 
-    bot = Bot.get_current()
-    await bot.send_message(chat_id, f"🔥 Мотивация:\n\n{text}")
+    await bot.send_message(user_id, message, parse_mode="HTML")

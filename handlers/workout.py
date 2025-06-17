@@ -17,5 +17,9 @@ async def send_workout(message: types.Message):
 @router.callback_query(lambda c: c.data == "new_workout")
 async def refresh_workout(callback: types.CallbackQuery):
     workout = load_workout(callback.from_user.id)
-    await callback.message.edit_text(workout, reply_markup=callback.message.reply_markup, parse_mode="HTML")
-    await callback.answer()
+    if callback.message.text != workout:
+        await callback.message.edit_text(workout, reply_markup=callback.message.reply_markup, parse_mode="HTML")
+    else:
+        await callback.answer("Тренировка уже актуальна ✅", show_alert=False)
+
+   

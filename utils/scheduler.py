@@ -1,13 +1,20 @@
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot
 from datetime import datetime, timedelta
-from handlers.motivation import get_daily_motivation
 from utils.database import get_all_users
 from utils.database import get_today_mealplan 
 from utils.workout_loader import load_workout as generate_daily_workout
+from utils.notifications import send_daily_push
 
 scheduler = AsyncIOScheduler()
 user_meal_jobs = {}
+
+def schedule_daily_push(user_id, time_str):
+    hour, minute = map(int, time_str.split(":"))
+    job_id = f"wake_{user_id}"
+    scheduler.remove_job(job_id=job_id, jobstore=None, job_defaults=None, jobstore_alias=None, jobstore_id=None) if scheduler.get_job(job_id) else None
+    scheduler.add_job(send_daily_push, "cron", hour=hour, minute=minute, args=[int(user_id)], id=job_id)
+
 
 def start_scheduler(bot: Bot):
     if not scheduler.running:

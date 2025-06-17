@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-
 API_KEY = os.getenv("SPOONACULAR_API_KEY")
 
 def translate(text):
@@ -12,7 +11,12 @@ def translate(text):
 
 def fetch_meal(meal_type):
     url = "https://api.spoonacular.com/recipes/random"
-    params = {"apiKey": API_KEY, "number": 1, "tags": meal_type, "includeNutrition": "true"}
+    params = {
+        "apiKey": API_KEY,
+        "number": 1,
+        "tags": meal_type,
+        "includeNutrition": "true"
+    }
 
     res = requests.get(url, params=params)
     res.raise_for_status()
@@ -24,7 +28,7 @@ def fetch_meal(meal_type):
 
     return f"{title_ru} — {round(calories)} ккал"
 
-def get_meal_plan_for_today():
+def get_meal_plan():
     breakfast = fetch_meal("breakfast")
     lunch = fetch_meal("lunch")
     dinner = fetch_meal("dinner")
