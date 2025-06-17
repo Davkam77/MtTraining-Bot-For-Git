@@ -1,7 +1,11 @@
 import requests
 from deep_translator import GoogleTranslator
+from dotenv import load_dotenv
+import os
 
-API_KEY = "449b9692f3a14ce8a529982e5eb35034"
+load_dotenv()
+
+API_KEY = os.getenv("SPOONACULAR_API_KEY")
 
 def translate(text):
     return GoogleTranslator(source='en', target='ru').translate(text)
