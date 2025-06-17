@@ -2,9 +2,9 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiogram import Bot
 from datetime import datetime, timedelta
 from handlers.motivation import get_daily_motivation
-from utils.workout_api import get_ninjas_workout as generate_daily_workout
 from utils.database import get_all_users
 from utils.database import get_today_mealplan 
+from utils.workout_loader import load_workout as generate_daily_workout
 
 scheduler = AsyncIOScheduler()
 user_meal_jobs = {}
