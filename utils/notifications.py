@@ -7,8 +7,7 @@ from utils.motivation_loader import get_random_motivation
 from utils.meal_api import get_meal_plan
 
 load_dotenv()
-
-TELEGRAM_TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TELEGRAM_BOT_TOKEN")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_TELEGRAM_BOT_TOKEN")
 
 
 bot = Bot(token=TELEGRAM_TELEGRAM_BOT_TOKEN)

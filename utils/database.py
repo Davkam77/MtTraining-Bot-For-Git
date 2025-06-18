@@ -284,17 +284,17 @@ def get_today_workout(user_id):
 
 
 def add_user_metrics(user_id, age, height, weight, goal, bmi):
-    try:
-        with open("data/user_metrics.json", "r", encoding="utf-8") as f:
-            data = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        data = {}
+    with get_connection() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO user_profile (user_id, age, height, weight, goal, bmi)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                age = excluded.age,
+                height = excluded.height,
+                weight = excluded.weight,
+                goal = excluded.goal,
+                bmi = excluded.bmi
+        """, (user_id, age, height, weight, goal, bmi))
+        conn.commit()
 
-    data[str(user_id)] = {
-        "age": age,
-        "height": height,
-        "weight": weight
-    }
-
-    with open("data/user_metrics.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
