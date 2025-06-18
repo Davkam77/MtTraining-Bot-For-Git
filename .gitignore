@@ -16,12 +16,7 @@ __pycache__/
 *.db
 *.log
 
-# Data and result files
-data/
-*.csv
-*.tsv
-*.xls
-*.xlsx
+
 
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
