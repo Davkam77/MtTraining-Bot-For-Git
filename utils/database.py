@@ -1,5 +1,6 @@
 import sqlite3
 from datetime import datetime
+import json
 
 DB_PATH = "data/users.db"
 
@@ -260,3 +261,20 @@ def get_today_workout(user_id):
         """, (user_id, today))
         row = cur.fetchone()
         return row[0] if row else None
+
+def add_user_metrics(user_id: int, age: int, height: int, weight: float):
+    with open("data/user_metrics.json", "r+", encoding="utf-8") as f:
+        try:
+            data = json.load(f)
+        except:
+            data = {}
+
+        data[str(user_id)] = {
+            "age": age,
+            "height": height,
+            "weight": weight
+        }
+
+        f.seek(0)
+        json.dump(data, f, ensure_ascii=False, indent=2)
+        f.truncate()

@@ -3,6 +3,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from utils.user_settings import set_user_plan
 
 router = Router()
 
@@ -31,6 +32,15 @@ async def choose_plan(callback: CallbackQuery, state: FSMContext):
 async def confirm_plan(callback: CallbackQuery, state: FSMContext):
     data = await state.get_data()
     plan = data.get("plan")
-    duration = callback.data
-    await callback.message.edit_text(f"✅ План сохранён: {plan}, {duration} в день!")
+    duration_str = callback.data  # например: "45 мин"
+    duration = int(duration_str.split()[0])  # -> 45
+
+    plan_key = {
+        "1 month": "1_month",
+        "3 months": "3_months",
+        "6 months": "6_months"
+    }.get(plan, "1_month")
+
+    set_user_plan(callback.from_user.id, plan_key, duration)
+    await callback.message.edit_text(f"✅ План сохранён: {plan_key}, {duration} мин в день!")
     await state.clear()

@@ -3,7 +3,7 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.exceptions import TelegramBadRequest
 from utils.workout_loader import load_workout
-from utils.workout_loader import generate_workout as get_today_workout_text
+from utils.workout_loader import generate_workout
 
 router = Router()
 
@@ -16,10 +16,9 @@ async def send_workout(message: types.Message):
     ])
     await message.answer(workout, reply_markup=markup, parse_mode="HTML")
 
-
 @router.callback_query(lambda c: c.data == "new_workout")
 async def refresh_workout(callback: CallbackQuery):
-    workout = get_today_workout_text()
+    workout = generate_workout(user_id=callback.from_user.id)
     try:
         await callback.message.edit_text(
             workout,
