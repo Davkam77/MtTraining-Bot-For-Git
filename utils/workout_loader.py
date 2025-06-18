@@ -51,3 +51,27 @@ def generate_workout(user_id: int) -> str:
 
     except Exception as e:
         return f"❌ Ошибка генерации тренировок: {e}"
+
+def generate_workout_from_plan(minutes: int, months: str) -> str:
+    try:
+        filename = f"workouts{minutes}.json"
+        file_path = os.path.join("data", filename)
+
+        if not os.path.exists(file_path):
+            return f"❌ Файл {file_path} не найден."
+
+        with open(file_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        duration_key = f"{minutes}_minutes"
+        workouts = data.get(duration_key, {}).get(months)
+
+        if not workouts:
+            return f"❗ Нет тренировок для плана {months} и {minutes} минут."
+
+        workout = random.choice(workouts)
+        exercises = "\n".join([f"• {ex}" for ex in workout["exercises"]])
+        return f"<b>🏋️ {workout['name']}</b>\n⏱ {workout['duration']}\n\n{exercises}"
+
+    except Exception as e:
+        return f"❌ Ошибка генерации тренировок по плану: {e}"

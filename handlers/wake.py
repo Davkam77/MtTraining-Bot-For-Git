@@ -15,11 +15,13 @@ async def save_wake_time(message: types.Message):
     time = message.text.strip()
 
     settings = load_settings()
-    settings[user_id] = settings.get(user_id, {})
+    # Убедимся, что settings[user_id] — это словарь
+    if not isinstance(settings.get(user_id), dict):
+        settings[user_id] = {}
+
     settings[user_id]["wake_time"] = time
     save_settings(settings)
 
-    # ⏰ Запускаем задачу для пользователя
     schedule_daily_push(user_id, time)
 
     await message.answer(f"✅ Напоминания будут каждый день в <b>{time}</b>", parse_mode="HTML")

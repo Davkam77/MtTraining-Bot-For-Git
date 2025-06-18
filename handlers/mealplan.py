@@ -5,7 +5,7 @@ from utils.meal_api import get_meal_plan
 router = Router()
 
 @router.message(Command("mealplan"))
-async def today_mealplan(message: types.Message):
+async def send_daily_meal(message: types.Message):  # Переименовано
     try:
         meal = get_meal_plan()
 

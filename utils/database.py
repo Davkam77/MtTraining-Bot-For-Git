@@ -4,8 +4,10 @@ import json
 
 DB_PATH = "data/users.db"
 
+
 def get_connection():
     return sqlite3.connect(DB_PATH)
+
 
 def init_db():
     with get_connection() as conn:
@@ -83,7 +85,9 @@ def init_db():
 
         conn.commit()
 
+
 # ⬇️ Работа с профилем
+
 def save_user_profile(user_id, weight, goal, height, age, gender, activity):
     with get_connection() as conn:
         cur = conn.cursor()
@@ -99,6 +103,7 @@ def save_user_profile(user_id, weight, goal, height, age, gender, activity):
                 activity=excluded.activity
         """, (user_id, weight, goal, height, age, gender, activity))
         conn.commit()
+
 
 def get_user_profile(user_id):
     with get_connection() as conn:
@@ -121,13 +126,16 @@ def get_user_profile(user_id):
         }
     return None
 
+
 def get_all_users():
     with get_connection() as conn:
         cur = conn.cursor()
         cur.execute("SELECT user_id FROM user_profile")
         return [row[0] for row in cur.fetchall()]
 
+
 # ⬇️ Вес
+
 def add_weight_entry(user_id, weight):
     with get_connection() as conn:
         cur = conn.cursor()
@@ -145,6 +153,7 @@ def add_weight_entry(user_id, weight):
         """, (user_id, weight, timestamp))
 
         conn.commit()
+
 
 def get_user_dashboard(user_id):
     with get_connection() as conn:
@@ -166,7 +175,9 @@ def get_user_dashboard(user_id):
         "first_weight": first_weight[0] if first_weight else None
     }
 
+
 # ⬇️ Шаги
+
 def update_steps(user_id: int, steps: int):
     with get_connection() as conn:
         cur = conn.cursor()
@@ -179,6 +190,7 @@ def update_steps(user_id: int, steps: int):
         """, (user_id, today, steps))
         conn.commit()
 
+
 def get_steps_by_user(user_id: int) -> int:
     with get_connection() as conn:
         cur = conn.cursor()
@@ -186,7 +198,9 @@ def get_steps_by_user(user_id: int) -> int:
         result = cur.fetchone()[0]
         return result or 0
 
+
 # ⬇️ План питания
+
 def save_mealplan(user_id, date, meals_text):
     with get_connection() as conn:
         cur = conn.cursor()
@@ -195,6 +209,7 @@ def save_mealplan(user_id, date, meals_text):
             VALUES (?, ?, ?)
         """, (user_id, date, meals_text))
         conn.commit()
+
 
 def get_today_mealplan(user_id):
     with get_connection() as conn:
@@ -207,7 +222,9 @@ def get_today_mealplan(user_id):
         row = cur.fetchone()
         return row[0] if row else None
 
+
 # ⬇️ Тренировки
+
 def save_workout_settings(user_id, duration_minutes, months):
     with get_connection() as conn:
         cur = conn.cursor()
@@ -221,6 +238,7 @@ def save_workout_settings(user_id, duration_minutes, months):
                 start_date = excluded.start_date
         """, (user_id, duration_minutes, months, start_date))
         conn.commit()
+
 
 def get_workout_settings(user_id):
     with get_connection() as conn:
@@ -240,6 +258,7 @@ def get_workout_settings(user_id):
         }
     return None
 
+
 def save_daily_workout(user_id, date, workout_text):
     with get_connection() as conn:
         cur = conn.cursor()
@@ -250,6 +269,7 @@ def save_daily_workout(user_id, date, workout_text):
                 workout = excluded.workout
         """, (user_id, date, workout_text))
         conn.commit()
+
 
 def get_today_workout(user_id):
     with get_connection() as conn:
@@ -262,19 +282,19 @@ def get_today_workout(user_id):
         row = cur.fetchone()
         return row[0] if row else None
 
-def add_user_metrics(user_id: int, age: int, height: int, weight: float):
-    with open("data/user_metrics.json", "r+", encoding="utf-8") as f:
-        try:
+
+def add_user_metrics(user_id, age, height, weight, goal, bmi):
+    try:
+        with open("data/user_metrics.json", "r", encoding="utf-8") as f:
             data = json.load(f)
-        except:
-            data = {}
+    except (FileNotFoundError, json.JSONDecodeError):
+        data = {}
 
-        data[str(user_id)] = {
-            "age": age,
-            "height": height,
-            "weight": weight
-        }
+    data[str(user_id)] = {
+        "age": age,
+        "height": height,
+        "weight": weight
+    }
 
-        f.seek(0)
+    with open("data/user_metrics.json", "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
-        f.truncate()
