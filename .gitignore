@@ -22,7 +22,6 @@ data/
 *.tsv
 *.xls
 *.xlsx
-*.json
 
 # Jupyter notebook checkpoints
 .ipynb_checkpoints/
